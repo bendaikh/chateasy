@@ -1,0 +1,14 @@
+2026/03/23-08:35:24.379 5f94 Reusing MANIFEST C:\Users\Espacegamers\Documents\chateasy\whatsapp-service\.wwebjs_auth\session-session_1774250614226\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/03/23-08:35:24.380 5f94 Recovering log #18
+2026/03/23-08:35:24.400 5f94 Reusing old log C:\Users\Espacegamers\Documents\chateasy\whatsapp-service\.wwebjs_auth\session-session_1774250614226\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000018.log 
+2026/03/23-08:40:05.676 5f94 Level-0 table #24: started
+2026/03/23-08:40:05.727 5f94 Level-0 table #24: 1129569 bytes OK
+2026/03/23-08:40:05.735 5f94 Delete type=0 #18
+2026/03/23-08:40:06.026 5f94 Compacting 1@1 + 2@2 files
+2026/03/23-08:40:06.150 5f94 Generated table #25@1: 46527 keys, 2213008 bytes
+2026/03/23-08:40:06.168 5f94 Generated table #26@1: 8765 keys, 313700 bytes
+2026/03/23-08:40:06.168 5f94 Compacted 1@1 + 2@2 files => 2526708 bytes
+2026/03/23-08:40:06.169 5f94 compacted to: files[ 0 0 2 0 0 0 0 ]
+2026/03/23-08:40:06.170 5f94 Delete type=2 #20
+2026/03/23-08:40:06.170 5f94 Delete type=2 #21
+2026/03/23-08:40:06.170 5f94 Delete type=2 #24
