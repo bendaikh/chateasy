@@ -65,13 +65,19 @@ io.on('connection', (socket) => {
         }
 
         // Create new WhatsApp client
+        const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || 
+                               '/nix/var/nix/profiles/default/bin/chromium' ||
+                               '/usr/bin/chromium';
+        
+        console.log('Using Chromium at:', executablePath);
+        
         const client = new Client({
             authStrategy: new LocalAuth({
                 clientId: sessionId
             }),
             puppeteer: {
                 headless: true,
-                executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
+                executablePath: executablePath,
                 args: [
                     '--no-sandbox',
                     '--disable-setuid-sandbox',
