@@ -3,6 +3,49 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const qrcode = require('qrcode');
+const { execSync } = require('child_process');
+const fs = require('fs');
+
+// Helper function to find Chromium executable
+function findChromiumPath() {
+    const possiblePaths = [
+        process.env.PUPPETEER_EXECUTABLE_PATH,
+        '/usr/bin/chromium',
+        '/usr/bin/chromium-browser',
+        '/nix/var/nix/profiles/default/bin/chromium',
+    ];
+    
+    // Try to find chromium using 'which' command
+    try {
+        const whichResult = execSync('which chromium 2>/dev/null || which chromium-browser 2>/dev/null', { encoding: 'utf8' }).trim();
+        if (whichResult) {
+            possiblePaths.unshift(whichResult);
+        }
+    } catch (e) {
+        // which command failed, continue with other methods
+    }
+    
+    // Try to find in /nix/store
+    try {
+        const nixStoreResult = execSync('find /nix/store -name chromium -type f -executable 2>/dev/null | head -n1', { encoding: 'utf8' }).trim();
+        if (nixStoreResult) {
+            possiblePaths.unshift(nixStoreResult);
+        }
+    } catch (e) {
+        // find command failed
+    }
+    
+    // Check which path actually exists
+    for (const path of possiblePaths) {
+        if (path && fs.existsSync(path)) {
+            console.log('✓ Found working Chromium at:', path);
+            return path;
+        }
+    }
+    
+    console.error('✗ No Chromium executable found. Tried:', possiblePaths);
+    throw new Error('Chromium not found. Please ensure Chromium is installed.');
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -65,11 +108,8 @@ io.on('connection', (socket) => {
         }
 
         // Create new WhatsApp client
-        const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || 
-                               '/nix/var/nix/profiles/default/bin/chromium' ||
-                               '/usr/bin/chromium';
-        
-        console.log('Using Chromium at:', executablePath);
+        const executablePath = findChromiumPath();
+        console.log('Initializing WhatsApp client with Chromium at:', executablePath);
         
         const client = new Client({
             authStrategy: new LocalAuth({
