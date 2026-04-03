@@ -5,6 +5,7 @@ node_modules
 .wwebjs_cache
 *.zip
 *.md
+.env
 .env.example
 nixpacks.toml
 start.sh

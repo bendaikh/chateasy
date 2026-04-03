@@ -14,8 +14,9 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
 # Install dependencies
 RUN npm ci --only=production
 
-# Copy application files
-COPY . .
+# Copy application files (excluding .env via .dockerignore)
+COPY server.js .
+COPY .puppeteerrc.cjs .
 
 # Expose port (Railway will override this)
 EXPOSE 3000
