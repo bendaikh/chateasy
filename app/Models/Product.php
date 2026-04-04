@@ -18,6 +18,11 @@ class Product extends Model
         'stock',
         'sku',
         'images',
+        'ai_generated_images',
+        'ai_images_status',
+        'ai_images_progress',
+        'ai_images_total',
+        'ai_images_generated',
         'is_active',
         'is_featured',
         'order',
@@ -28,11 +33,13 @@ class Product extends Model
         'landing_page_cta',
         'landing_page_fr',
         'landing_page_en',
-        'landing_page_ar'
+        'landing_page_ar',
+        'landing_page_status'
     ];
 
     protected $casts = [
         'images' => 'array',
+        'ai_generated_images' => 'array',
         'price' => 'decimal:2',
         'compare_at_price' => 'decimal:2',
         'is_active' => 'boolean',
@@ -83,6 +90,29 @@ class Product extends Model
     public function leads()
     {
         return $this->hasMany(ProductLead::class);
+    }
+
+    public function getAllImagesAttribute()
+    {
+        $images = [];
+        
+        if (!empty($this->images)) {
+            foreach ($this->images as $image) {
+                $images[] = \Storage::url($image);
+            }
+        }
+        
+        if (!empty($this->ai_generated_images)) {
+            foreach ($this->ai_generated_images as $image) {
+                $images[] = $image;
+            }
+        }
+        
+        if (empty($images)) {
+            return ['https://via.placeholder.com/800x800/e5e7eb/6b7280?text=No+Image'];
+        }
+        
+        return $images;
     }
 }
 

@@ -7,6 +7,7 @@ use App\Models\WhatsappProfile;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Services\AiLandingPageService;
+use App\Jobs\GenerateProductLandingPageJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
@@ -280,22 +281,35 @@ class CustomerDashboardController extends Controller
             $validated['images'] = $imagePaths;
         }
         
+        if ($request->boolean('generate_landing_page')) {
+            $validated['landing_page_status'] = 'pending';
+        } else {
+            $validated['landing_page_status'] = 'none';
+        }
+
+        if ($request->boolean('generate_product_images')) {
+            $validated['ai_images_status'] = 'pending';
+        } else {
+            $validated['ai_images_status'] = 'none';
+        }
+        
         $product = \App\Models\Product::create($validated);
         
+        $jobsDispatched = [];
+        
         if ($request->boolean('generate_landing_page')) {
-            try {
-                $aiService = new AiLandingPageService(auth()->user());
-                $landingPageData = $aiService->generateLandingPage($product);
-                $aiService->saveLandingPageToProduct($product, $landingPageData);
-                
-                return redirect()
-                    ->route('app.products')
-                    ->with('success', 'Product created successfully with AI-generated landing page!');
-            } catch (\Exception $e) {
-                return redirect()
-                    ->route('app.products')
-                    ->with('warning', 'Product created, but AI landing page generation failed: ' . $e->getMessage());
-            }
+            GenerateProductLandingPageJob::dispatch($product, auth()->id());
+            $jobsDispatched[] = 'AI landing page';
+        }
+
+        if ($request->boolean('generate_product_images')) {
+            \App\Jobs\GenerateProductImagesJob::dispatch($product, auth()->id(), 5);
+            $jobsDispatched[] = 'AI product images';
+        }
+        
+        if (!empty($jobsDispatched)) {
+            $message = 'Product created successfully! ' . implode(' and ', $jobsDispatched) . ' generation started in the background.';
+            return redirect()->route('app.products')->with('success', $message);
         }
         
         return redirect()->route('app.products')->with('success', 'Product created successfully!');
@@ -305,22 +319,45 @@ class CustomerDashboardController extends Controller
     {
         $product = \App\Models\Product::where('user_id', auth()->id())->findOrFail($productId);
         
-        try {
-            $aiService = new AiLandingPageService(auth()->user());
-            $landingPageData = $aiService->generateLandingPage($product);
-            $aiService->saveLandingPageToProduct($product, $landingPageData);
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Landing page generated successfully!',
-                'data' => $landingPageData
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
-            ], 400);
-        }
+        $product->update(['landing_page_status' => 'pending']);
+        
+        GenerateProductLandingPageJob::dispatch($product, auth()->id());
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Landing page generation started! It will be ready in a few moments.'
+        ]);
+    }
+
+    public function generateProductImages($productId)
+    {
+        $product = \App\Models\Product::where('user_id', auth()->id())->findOrFail($productId);
+        
+        $product->update([
+            'ai_images_status' => 'pending',
+            'ai_images_progress' => 0,
+            'ai_images_generated' => 0,
+        ]);
+        
+        \App\Jobs\GenerateProductImagesJob::dispatch($product, auth()->id(), 5);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'AI image generation started! This may take a few minutes.'
+        ]);
+    }
+
+    public function checkImageGenerationProgress($productId)
+    {
+        $product = \App\Models\Product::where('user_id', auth()->id())->findOrFail($productId);
+        
+        return response()->json([
+            'status' => $product->ai_images_status,
+            'progress' => $product->ai_images_progress,
+            'generated' => $product->ai_images_generated,
+            'total' => $product->ai_images_total,
+            'images' => $product->ai_generated_images ?? [],
+        ]);
     }
     
     public function campaigns()

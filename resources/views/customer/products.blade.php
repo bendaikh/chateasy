@@ -58,6 +58,7 @@
                             <th class="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Category</th>
                             <th class="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Price</th>
                             <th class="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Stock</th>
+                            <th class="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">AI Images</th>
                             <th class="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">AI Page</th>
                             <th class="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
                             <th class="px-6 py-4 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Actions</th>
@@ -87,14 +88,76 @@
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="text-sm text-gray-300">{{ $product->stock }}</span>
                                 </td>
+                                <td class="px-6 py-4" data-product-id="{{ $product->id }}">
+                                    @if($product->ai_images_status === 'completed' && !empty($product->ai_generated_images))
+                                        <div class="flex items-center gap-2">
+                                            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-gradient-to-r from-emerald-600/20 to-green-600/20 text-emerald-400 border border-emerald-500/30">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                                </svg>
+                                                {{ count($product->ai_generated_images) }} Images
+                                            </span>
+                                            <button onclick="viewGeneratedImages({{ $product->id }})" class="text-cyan-400 hover:text-cyan-300 transition" title="View Generated Images">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    @elseif($product->ai_images_status === 'pending' || $product->ai_images_status === 'generating')
+                                        <div class="space-y-1 min-w-[200px]">
+                                            <div class="flex items-center justify-between gap-2">
+                                                <span class="text-xs font-semibold text-yellow-400">
+                                                    {{ $product->ai_images_status === 'pending' ? 'Starting...' : 'Generating...' }}
+                                                </span>
+                                                <span class="text-xs text-gray-400 image-progress-text">
+                                                    {{ $product->ai_images_generated ?? 0 }}/{{ $product->ai_images_total ?? 5 }}
+                                                </span>
+                                            </div>
+                                            <div class="w-full bg-gray-700 rounded-full h-2">
+                                                <div class="bg-gradient-to-r from-yellow-500 to-orange-500 h-2 rounded-full transition-all duration-500 image-progress-bar" 
+                                                     style="width: {{ $product->ai_images_progress ?? 0 }}%">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @elseif($product->ai_images_status === 'failed')
+                                        <button onclick="generateProductImages({{ $product->id }})" class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-red-600/20 text-red-400 hover:bg-orange-600/20 hover:text-orange-400 transition border border-red-500/30 hover:border-orange-500/30">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                            </svg>
+                                            Retry
+                                        </button>
+                                    @else
+                                        <button onclick="generateProductImages({{ $product->id }})" class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-gray-700/50 text-gray-400 hover:bg-orange-600/20 hover:text-orange-400 transition border border-gray-600 hover:border-orange-500/30">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                            </svg>
+                                            Generate
+                                        </button>
+                                    @endif
+                                </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    @if($product->landing_page_hero_title)
+                                    @if($product->landing_page_status === 'completed' && $product->landing_page_hero_title)
                                         <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-gradient-to-r from-purple-600/20 to-blue-600/20 text-purple-400 border border-purple-500/30">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                                             </svg>
                                             AI Generated
                                         </span>
+                                    @elseif($product->landing_page_status === 'pending' || $product->landing_page_status === 'processing')
+                                        <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-yellow-600/20 text-yellow-400 border border-yellow-500/30">
+                                            <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                            </svg>
+                                            {{ $product->landing_page_status === 'pending' ? 'Pending' : 'Generating...' }}
+                                        </span>
+                                    @elseif($product->landing_page_status === 'failed')
+                                        <button onclick="generateLandingPage({{ $product->id }})" class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-red-600/20 text-red-400 hover:bg-purple-600/20 hover:text-purple-400 transition border border-red-500/30 hover:border-purple-500/30">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                            </svg>
+                                            Retry
+                                        </button>
                                     @else
                                         <button onclick="generateLandingPage({{ $product->id }})" class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-gray-700/50 text-gray-400 hover:bg-purple-600/20 hover:text-purple-400 transition border border-gray-600 hover:border-purple-500/30">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -184,7 +247,7 @@
                 <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                 </svg>
-                <span>Generating...</span>
+                <span>Starting...</span>
             `;
             
             fetch(`/app/products/${productId}/generate-landing-page`, {
@@ -198,16 +261,35 @@
             .then(data => {
                 if (data.success) {
                     button.innerHTML = `
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        <span>Generating...</span>
+                    `;
+                    button.className = 'inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-yellow-600/20 text-yellow-400 border border-yellow-500/30';
+                    
+                    // Show success notification
+                    const notification = document.createElement('div');
+                    notification.className = 'fixed top-4 right-4 bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 px-6 py-4 rounded-lg shadow-lg z-50 flex items-center gap-3';
+                    notification.innerHTML = `
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
-                        <span>Generated!</span>
+                        <div>
+                            <p class="font-semibold">Generation Started</p>
+                            <p class="text-sm">${data.message}</p>
+                        </div>
                     `;
-                    button.className = 'inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-gradient-to-r from-purple-600/20 to-blue-600/20 text-purple-400 border border-purple-500/30';
+                    document.body.appendChild(notification);
                     
                     setTimeout(() => {
+                        notification.remove();
+                    }, 5000);
+                    
+                    // Refresh the page after 3 seconds to show the pending status
+                    setTimeout(() => {
                         location.reload();
-                    }, 1500);
+                    }, 3000);
                 } else {
                     alert('Error: ' + data.message);
                     button.disabled = false;
@@ -215,10 +297,149 @@
                 }
             })
             .catch(error => {
-                alert('An error occurred while generating the landing page.');
+                alert('An error occurred while starting the landing page generation.');
                 button.disabled = false;
                 button.innerHTML = originalContent;
             });
+        }
+
+        // Auto-refresh page every 10 seconds if there are pending or processing jobs
+        document.addEventListener('DOMContentLoaded', function() {
+            const hasPendingJobs = document.querySelector('.bg-yellow-600\\/20');
+            if (hasPendingJobs) {
+                setTimeout(() => {
+                    location.reload();
+                }, 10000);
+            }
+            
+            document.querySelectorAll('td[data-product-id]').forEach(cell => {
+                const productId = cell.getAttribute('data-product-id');
+                const progressBar = cell.querySelector('.image-progress-bar');
+                
+                if (progressBar) {
+                    startProgressTracking(productId);
+                }
+            });
+        });
+
+        let progressIntervals = {};
+
+        function generateProductImages(productId) {
+            const button = event.target.closest('button');
+            const cell = button.closest('td');
+            
+            button.disabled = true;
+            
+            cell.innerHTML = `
+                <div class="space-y-1 min-w-[200px]">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-xs font-semibold text-yellow-400">Starting...</span>
+                        <span class="text-xs text-gray-400 image-progress-text">0/5</span>
+                    </div>
+                    <div class="w-full bg-gray-700 rounded-full h-2">
+                        <div class="bg-gradient-to-r from-yellow-500 to-orange-500 h-2 rounded-full transition-all duration-500 image-progress-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+            `;
+            
+            fetch(`/app/products/${productId}/generate-images`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    startProgressTracking(productId);
+                } else {
+                    alert('Error: ' + data.message);
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                alert('An error occurred while starting image generation.');
+                location.reload();
+            });
+        }
+
+        function startProgressTracking(productId) {
+            if (progressIntervals[productId]) {
+                clearInterval(progressIntervals[productId]);
+            }
+            
+            progressIntervals[productId] = setInterval(() => {
+                fetch(`/app/products/${productId}/image-progress`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const cell = document.querySelector(`td[data-product-id="${productId}"]`);
+                        if (!cell) return;
+                        
+                        const progressBar = cell.querySelector('.image-progress-bar');
+                        const progressText = cell.querySelector('.image-progress-text');
+                        
+                        if (progressBar && progressText) {
+                            progressBar.style.width = data.progress + '%';
+                            progressText.textContent = `${data.generated}/${data.total}`;
+                        }
+                        
+                        if (data.status === 'completed') {
+                            clearInterval(progressIntervals[productId]);
+                            setTimeout(() => {
+                                location.reload();
+                            }, 1000);
+                        } else if (data.status === 'failed') {
+                            clearInterval(progressIntervals[productId]);
+                            alert('Image generation failed. Please try again.');
+                            location.reload();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error checking progress:', error);
+                    });
+            }, 3000);
+        }
+
+        function viewGeneratedImages(productId) {
+            fetch(`/app/products/${productId}/image-progress`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.images && data.images.length > 0) {
+                        const modal = document.createElement('div');
+                        modal.className = 'fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4';
+                        modal.onclick = (e) => {
+                            if (e.target === modal) modal.remove();
+                        };
+                        
+                        const imagesHtml = data.images.map(img => `
+                            <div class="bg-white rounded-lg overflow-hidden">
+                                <img src="${img}" alt="Generated product image" class="w-full h-64 object-contain" />
+                            </div>
+                        `).join('');
+                        
+                        modal.innerHTML = `
+                            <div class="bg-[#0f1c2e] border border-white/10 rounded-xl p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+                                <div class="flex justify-between items-center mb-6">
+                                    <h3 class="text-2xl font-bold text-white">AI Generated Images</h3>
+                                    <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-white transition">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    ${imagesHtml}
+                                </div>
+                            </div>
+                        `;
+                        
+                        document.body.appendChild(modal);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading images:', error);
+                });
         }
     </script>
 @endsection

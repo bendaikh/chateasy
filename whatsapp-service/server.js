@@ -8,23 +8,41 @@ const fs = require('fs');
 
 // Helper function to find Chromium executable
 function findChromiumPath() {
-    const possiblePaths = [
+    const isWindows = process.platform === 'win32';
+    
+    let possiblePaths = [
         process.env.PUPPETEER_EXECUTABLE_PATH,
-        '/usr/bin/google-chrome-stable',
-        '/usr/bin/google-chrome',
-        '/usr/bin/chromium',
-        '/usr/bin/chromium-browser',
-        '/nix/var/nix/profiles/default/bin/chromium',
     ];
     
-    // Try to find chromium using 'which' command
-    try {
-        const whichResult = execSync('which google-chrome-stable 2>/dev/null || which chromium 2>/dev/null || which chromium-browser 2>/dev/null', { encoding: 'utf8' }).trim();
-        if (whichResult) {
-            possiblePaths.unshift(whichResult);
+    if (isWindows) {
+        // Windows paths
+        possiblePaths.push(
+            'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+            'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+            process.env.LOCALAPPDATA + '\\Google\\Chrome\\Application\\chrome.exe',
+            'C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe',
+            'C:\\Program Files (x86)\\BraveSoftware\\Brave-Browser\\Application\\brave.exe',
+            'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
+        );
+    } else {
+        // Linux/Unix paths
+        possiblePaths.push(
+            '/usr/bin/google-chrome-stable',
+            '/usr/bin/google-chrome',
+            '/usr/bin/chromium',
+            '/usr/bin/chromium-browser',
+            '/nix/var/nix/profiles/default/bin/chromium'
+        );
+        
+        // Try to find chromium using 'which' command
+        try {
+            const whichResult = execSync('which google-chrome-stable 2>/dev/null || which chromium 2>/dev/null || which chromium-browser 2>/dev/null', { encoding: 'utf8' }).trim();
+            if (whichResult) {
+                possiblePaths.unshift(whichResult);
+            }
+        } catch (e) {
+            // which command failed, continue with other methods
         }
-    } catch (e) {
-        // which command failed, continue with other methods
     }
     
     // Check which path actually exists
@@ -36,13 +54,6 @@ function findChromiumPath() {
     }
     
     console.error('✗ No Chrome/Chromium executable found. Tried:', possiblePaths);
-    console.error('Available binaries in /usr/bin:');
-    try {
-        const bins = execSync('ls -la /usr/bin/ | grep -i chrome', { encoding: 'utf8' });
-        console.error(bins);
-    } catch (e) {
-        console.error('Could not list /usr/bin contents');
-    }
     throw new Error('Chrome/Chromium not found. Please ensure Chrome is installed.');
 }
 

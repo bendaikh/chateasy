@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CustomerDashboardController;
 use App\Http\Controllers\WhatsAppController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\SocialMediaAdsController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
@@ -60,6 +61,8 @@ Route::middleware(['auth'])->prefix('app')->name('app.')->group(function () {
     Route::get('/products/create', [CustomerDashboardController::class, 'productsCreate'])->name('products.create');
     Route::post('/products', [CustomerDashboardController::class, 'productsStore'])->name('products.store');
     Route::post('/products/{id}/generate-landing-page', [CustomerDashboardController::class, 'generateLandingPage'])->name('products.generate-landing-page');
+    Route::post('/products/{id}/generate-images', [CustomerDashboardController::class, 'generateProductImages'])->name('products.generate-images');
+    Route::get('/products/{id}/image-progress', [CustomerDashboardController::class, 'checkImageGenerationProgress'])->name('products.image-progress');
     Route::get('/campaigns', [CustomerDashboardController::class, 'campaigns'])->name('campaigns');
     Route::get('/leads', [CustomerDashboardController::class, 'leads'])->name('leads');
     
@@ -73,6 +76,17 @@ Route::middleware(['auth'])->prefix('app')->name('app.')->group(function () {
     Route::get('/website-customization', [\App\Http\Controllers\Admin\WebsiteCustomizationController::class, 'index'])->name('website-customization');
     Route::post('/website-customization', [\App\Http\Controllers\Admin\WebsiteCustomizationController::class, 'update'])->name('website-customization.update');
     Route::get('/website-preview', [\App\Http\Controllers\Admin\WebsiteCustomizationController::class, 'preview'])->name('website-preview');
+    
+    // Social Media Ads Integration
+    Route::get('/facebook-ads', [SocialMediaAdsController::class, 'facebookAds'])->name('facebook-ads');
+    Route::post('/facebook-ads', [SocialMediaAdsController::class, 'saveFacebookSettings'])->name('facebook-ads.save');
+    Route::post('/facebook-ads/test', [SocialMediaAdsController::class, 'testFacebookConnection'])->name('facebook-ads.test');
+    Route::post('/facebook-ads/disconnect', [SocialMediaAdsController::class, 'disconnectFacebook'])->name('facebook-ads.disconnect');
+    
+    Route::get('/tiktok-ads', [SocialMediaAdsController::class, 'tiktokAds'])->name('tiktok-ads');
+    Route::post('/tiktok-ads', [SocialMediaAdsController::class, 'saveTikTokSettings'])->name('tiktok-ads.save');
+    Route::post('/tiktok-ads/test', [SocialMediaAdsController::class, 'testTikTokConnection'])->name('tiktok-ads.test');
+    Route::post('/tiktok-ads/disconnect', [SocialMediaAdsController::class, 'disconnectTikTok'])->name('tiktok-ads.disconnect');
     
     // WhatsApp Routes
     Route::post('/whatsapp/generate-qr', [WhatsAppController::class, 'generateQrCode'])->name('whatsapp.generate-qr');

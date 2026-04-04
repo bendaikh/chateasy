@@ -63,54 +63,62 @@ Price: {$product->price} MAD
 " . ($product->compare_at_price ? "Original Price: {$product->compare_at_price} MAD\n" : "") . "
 Description: {$product->description}
 
-Generate a professional, conversion-optimized landing page with the following structure in JSON format:
+Generate a professional, conversion-optimized landing page in JSON format with these fields:
 
 {
-    \"hero_title\": \"An attention-grabbing headline (max 60 characters)\",
-    \"hero_description\": \"A compelling 2-3 sentence description that highlights the main benefit\",
+    \"hero_title\": \"Write a catchy headline about the product (max 60 characters)\",
+    \"hero_description\": \"Write 2-3 compelling sentences highlighting the main benefits\",
     \"features\": [
-        {\"title\": \"Feature 1 Title\", \"description\": \"Brief feature description\", \"icon\": \"✓\"},
-        {\"title\": \"Feature 2 Title\", \"description\": \"Brief feature description\", \"icon\": \"⚡\"},
-        {\"title\": \"Feature 3 Title\", \"description\": \"Brief feature description\", \"icon\": \"🎯\"},
-        {\"title\": \"Feature 4 Title\", \"description\": \"Brief feature description\", \"icon\": \"💎\"}
+        {\"title\": \"Feature name\", \"description\": \"Why this feature matters\", \"icon\": \"✓\"},
+        {\"title\": \"Feature name\", \"description\": \"Why this feature matters\", \"icon\": \"⚡\"},
+        {\"title\": \"Feature name\", \"description\": \"Why this feature matters\", \"icon\": \"🎯\"},
+        {\"title\": \"Feature name\", \"description\": \"Why this feature matters\", \"icon\": \"💎\"}
     ],
     \"steps\": [
-        {\"number\": \"1\", \"title\": \"Step 1 Title\", \"description\": \"What customer does in step 1\"},
-        {\"number\": \"2\", \"title\": \"Step 2 Title\", \"description\": \"What customer does in step 2\"},
-        {\"number\": \"3\", \"title\": \"Step 3 Title\", \"description\": \"What customer does in step 3\"}
+        {\"number\": \"1\", \"title\": \"First step\", \"description\": \"Explain what customer does\"},
+        {\"number\": \"2\", \"title\": \"Second step\", \"description\": \"Explain what customer does\"},
+        {\"number\": \"3\", \"title\": \"Third step\", \"description\": \"Explain what customer does\"}
     ],
-    \"steps_title\": \"Title for steps section (e.g., 'How It Works', '3 Easy Steps')\",
+    \"steps_title\": \"Section heading for the steps\",
     \"testimonials\": [
-        {\"name\": \"Customer Name\", \"text\": \"Positive testimonial quote\", \"rating\": 5},
-        {\"name\": \"Customer Name\", \"text\": \"Positive testimonial quote\", \"rating\": 5},
-        {\"name\": \"Customer Name\", \"text\": \"Positive testimonial quote\", \"rating\": 5}
+        {\"name\": \"Ahmed\", \"text\": \"J'ai commandé ce produit il y a deux semaines et je suis vraiment impressionné par la qualité. Le service client était excellent et la livraison rapide. Je recommande vivement!\", \"rating\": 5},
+        {\"name\": \"Fatima\", \"text\": \"Exactement ce que je recherchais! Le rapport qualité-prix est imbattable. Mes amies m'ont déjà demandé où je l'ai acheté. Très satisfaite de mon achat!\", \"rating\": 5},
+        {\"name\": \"Hassan\", \"text\": \"Produit conforme à la description. L'équipe a été très professionnelle du début à la fin. Je commanderai à nouveau sans hésiter. Merci beaucoup!\", \"rating\": 5}
     ],
-    \"testimonials_title\": \"Title for testimonials section\",
+    \"testimonials_title\": \"Section heading for testimonials\",
     \"faqs\": [
-        {\"question\": \"Common question 1?\", \"answer\": \"Detailed answer to question 1\"},
-        {\"question\": \"Common question 2?\", \"answer\": \"Detailed answer to question 2\"},
-        {\"question\": \"Common question 3?\", \"answer\": \"Detailed answer to question 3\"},
-        {\"question\": \"Common question 4?\", \"answer\": \"Detailed answer to question 4\"}
+        {\"question\": \"Write a common question\", \"answer\": \"Write a helpful detailed answer\"},
+        {\"question\": \"Write a common question\", \"answer\": \"Write a helpful detailed answer\"},
+        {\"question\": \"Write a common question\", \"answer\": \"Write a helpful detailed answer\"},
+        {\"question\": \"Write a common question\", \"answer\": \"Write a helpful detailed answer\"}
     ],
-    \"faqs_title\": \"Title for FAQ section\",
-    \"cta\": \"Call-to-action text (e.g., 'Get Yours Today', 'Order Now')\",
-    \"full_description\": \"A detailed 3-4 paragraph description of the product, its benefits, and why customers should buy it. Make it persuasive and SEO-friendly.\",
-    \"form_title\": \"Contact form title\",
-    \"form_subtitle\": \"Contact form subtitle/description\",
-    \"form_name_placeholder\": \"Name field placeholder\",
-    \"form_phone_placeholder\": \"Phone field placeholder\",
-    \"form_note_placeholder\": \"Note field placeholder\",
+    \"faqs_title\": \"Section heading for FAQs\",
+    \"cta\": \"Action button text\",
+    \"full_description\": \"Write 3-4 detailed persuasive paragraphs about the product\",
+    \"form_title\": \"Contact form heading\",
+    \"form_subtitle\": \"Contact form subheading\",
+    \"form_name_placeholder\": \"Name input placeholder\",
+    \"form_phone_placeholder\": \"Phone input placeholder\",
+    \"form_note_placeholder\": \"Note input placeholder\",
     \"form_submit_button\": \"Submit button text\"
 }
 
-Important:
-- Make it specific to the {$categoryName} category
-- Focus on benefits, not just features
+CRITICAL INSTRUCTIONS FOR TESTIMONIALS:
+- The testimonials array shows examples of REAL customer reviews in French
+- You MUST write similar AUTHENTIC, DETAILED testimonials for this specific product
+- Each testimonial should be 2-4 sentences describing actual product experience
+- Use Moroccan names: Ahmed, Fatima, Hassan, Salma, Youssef, Aisha, Karim, Nadia, Omar, Zineb
+- Mention specific aspects of the product, delivery, quality, or customer service
+- Write as if you are real customers sharing their genuine experience
+- DO NOT use generic phrases like \"testimonial text\", \"great product\", or placeholders
+- Each testimonial must be unique and believable
+
+Other requirements:
+- Make content specific to {$categoryName} category and this exact product
+- Focus on real benefits, not just features
 - Use persuasive, action-oriented language
-- Keep it professional but engaging
-- Create realistic testimonials with Moroccan names
-- FAQs should address common concerns about buying/ordering
-- Return ONLY valid JSON, no additional text or markdown code blocks
+- All FAQs should address real concerns about buying/ordering
+- Return ONLY valid JSON, no markdown or extra text
 - All content must be in {$instruction}";
     }
 

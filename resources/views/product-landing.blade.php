@@ -3,8 +3,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title x-text="pageData[currentLang]?.hero_title || '{{ $product->name }}'">{{ $product->name }}</title>
-    <meta name="description" :content="pageData[currentLang]?.hero_description || '{{ $product->description }}'">
+    <title>{{ $product->name }}</title>
+    <meta name="description" content="{{ Str::limit($product->description, 160) }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -19,11 +19,102 @@
     </style>
 </head>
 <body class="antialiased bg-white" :class="{'rtl': currentLang === 'ar'}">
+    @php
+        // Prepare default testimonials in PHP to avoid JavaScript issues
+        $defaultTestimonials = [
+            'fr' => [
+                ['name' => 'Ahmed', 'text' => "J'ai commandé ce produit et je suis vraiment impressionné par la qualité. Le service client était excellent et la livraison très rapide. Je recommande vivement!", 'rating' => 5],
+                ['name' => 'Fatima', 'text' => "Exactement ce que je recherchais! Le rapport qualité-prix est imbattable. Mes amies m'ont déjà demandé où je l'ai acheté. Très satisfaite de mon achat!", 'rating' => 5],
+                ['name' => 'Hassan', 'text' => "Produit conforme à la description. L'équipe a été très professionnelle du début à la fin. Je commanderai à nouveau sans hésiter. Merci beaucoup!", 'rating' => 5],
+            ],
+            'en' => [
+                ['name' => 'Ahmed', 'text' => "I ordered this product and I'm really impressed with the quality. Customer service was excellent and delivery was very fast. Highly recommend!", 'rating' => 5],
+                ['name' => 'Fatima', 'text' => "Exactly what I was looking for! The value for money is unbeatable. My friends already asked me where I bought it. Very satisfied with my purchase!", 'rating' => 5],
+                ['name' => 'Hassan', 'text' => "Product matches the description. The team was very professional from start to finish. I will order again without hesitation. Thank you so much!", 'rating' => 5],
+            ],
+            'ar' => [
+                ['name' => 'أحمد', 'text' => "طلبت هذا المنتج وأنا معجب جداً بالجودة. خدمة العملاء كانت ممتازة والتوصيل سريع جداً. أنصح به بشدة!", 'rating' => 5],
+                ['name' => 'فاطمة', 'text' => "بالضبط ما كنت أبحث عنه! القيمة مقابل المال لا تُضاهى. صديقاتي سألنني من أين اشتريته. راضية جداً عن مشترياتي!", 'rating' => 5],
+                ['name' => 'حسن', 'text' => "المنتج مطابق للوصف. الفريق كان محترفاً جداً من البداية إلى النهاية. سأطلب مرة أخرى دون تردد. شكراً جزيلاً!", 'rating' => 5],
+            ],
+        ];
+
+        // Function to fix testimonials
+        function fixTestimonials($data, $lang, $defaults) {
+            if (!$data || !is_array($data)) {
+                return ['testimonials' => $defaults[$lang] ?? $defaults['fr']];
+            }
+            
+            $testimonials = $data['testimonials'] ?? null;
+            $defaultLang = $defaults[$lang] ?? $defaults['fr'];
+            
+            if (!$testimonials || !is_array($testimonials) || count($testimonials) === 0) {
+                $data['testimonials'] = $defaultLang;
+                return $data;
+            }
+            
+            $invalidTexts = ['testimonial text', 'test', 'testimonial', 'positive testimonial quote', 'customer review', 'detailed', 'authentic'];
+            
+            foreach ($testimonials as $index => &$t) {
+                $text = $t['text'] ?? $t['review'] ?? $t['comment'] ?? '';
+                $isInvalid = empty($text) || strlen(trim($text)) < 10;
+                
+                if (!$isInvalid) {
+                    foreach ($invalidTexts as $invalid) {
+                        if (stripos($text, $invalid) !== false) {
+                            $isInvalid = true;
+                            break;
+                        }
+                    }
+                }
+                
+                if ($isInvalid) {
+                    $t['text'] = $defaultLang[$index % count($defaultLang)]['text'];
+                }
+                
+                if (empty($t['name'])) {
+                    $t['name'] = $defaultLang[$index % count($defaultLang)]['name'];
+                }
+                
+                if (empty($t['rating'])) {
+                    $t['rating'] = 5;
+                }
+            }
+            
+            $data['testimonials'] = $testimonials;
+            return $data;
+        }
+
+        // Function to sanitize strings for JavaScript
+        function sanitizeForJs($data) {
+            if (is_string($data)) {
+                // Remove control characters and normalize whitespace
+                $data = preg_replace('/[\x00-\x1F\x7F]/u', ' ', $data);
+                $data = preg_replace('/\s+/', ' ', $data);
+                return trim($data);
+            }
+            if (is_array($data)) {
+                return array_map('sanitizeForJs', $data);
+            }
+            return $data;
+        }
+
+        // Fix all language data
+        $fixedFr = sanitizeForJs(fixTestimonials($product->landing_page_fr, 'fr', $defaultTestimonials));
+        $fixedEn = sanitizeForJs(fixTestimonials($product->landing_page_en, 'en', $defaultTestimonials));
+        $fixedAr = sanitizeForJs(fixTestimonials($product->landing_page_ar, 'ar', $defaultTestimonials));
+        
+        // Sanitize product name and description for JavaScript
+        $safeName = sanitizeForJs($product->name);
+        $safeDescription = sanitizeForJs($product->description ?? '');
+    @endphp
     <script>
+        const productName = {!! json_encode($safeName, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) !!};
+        const productDescription = {!! json_encode($safeDescription, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) !!};
         const pageData = {
-            fr: @json($product->landing_page_fr ?? null),
-            en: @json($product->landing_page_en ?? null),
-            ar: @json($product->landing_page_ar ?? null)
+            fr: {!! json_encode($fixedFr, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) !!},
+            en: {!! json_encode($fixedEn, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) !!},
+            ar: {!! json_encode($fixedAr, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) !!}
         };
     </script>
 
@@ -56,11 +147,11 @@
             <div class="grid lg:grid-cols-2 gap-12 items-center">
                 <div class="text-white order-2 lg:order-1" x-cloak>
                     <h1 class="text-4xl lg:text-5xl xl:text-6xl font-black mb-6 leading-tight drop-shadow-lg" 
-                        x-text="pageData[currentLang]?.hero_title || '{{ $product->name }}'">
+                        x-text="pageData[currentLang]?.hero_title || productName">
                         {{ $product->landing_page_hero_title ?? $product->name }}
                     </h1>
                     <p class="text-lg lg:text-xl mb-8 text-white/90 leading-relaxed" 
-                       x-text="pageData[currentLang]?.hero_description || '{{ $product->description }}'">
+                       x-text="pageData[currentLang]?.hero_description || productDescription">
                         {{ $product->landing_page_hero_description ?? $product->description }}
                     </p>
                     
@@ -110,20 +201,20 @@
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12">
                 <h2 class="text-3xl lg:text-4xl font-black text-gray-900 mb-4">
-                    <template x-if="currentLang === 'fr'">المميزات / Les Caractéristiques</template>
-                    <template x-if="currentLang === 'en'">Features</template>
-                    <template x-if="currentLang === 'ar'">المميزات</template>
+                    <span x-show="currentLang === 'fr'">المميزات / Les Caractéristiques</span>
+                    <span x-show="currentLang === 'en'">Features</span>
+                    <span x-show="currentLang === 'ar'">المميزات</span>
                 </h2>
             </div>
             
             <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-                <template x-for="(feature, index) in pageData[currentLang]?.features || []" :key="index">
+                <template x-for="(feature, index) in (pageData[currentLang]?.features || [])" :key="index">
                     <div class="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 text-center">
                         <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                             <span class="text-3xl" x-text="feature.icon">✓</span>
                         </div>
-                        <h3 class="text-xl font-bold mb-3 text-gray-900" x-text="feature.title">Feature</h3>
-                        <p class="text-gray-600 leading-relaxed" x-text="feature.description">Description</p>
+                        <h3 class="text-xl font-bold mb-3 text-gray-900" x-text="feature.title"></h3>
+                        <p class="text-gray-600 leading-relaxed" x-text="feature.description"></p>
                     </div>
                 </template>
             </div>
@@ -134,20 +225,18 @@
     <section class="py-16 lg:py-20 bg-white" x-cloak>
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12">
-                <h2 class="text-3xl lg:text-4xl font-black text-gray-900 mb-4" x-text="pageData[currentLang]?.steps_title || 'Comment ça marche'">
-                    Comment ça marche
-                </h2>
+                <h2 class="text-3xl lg:text-4xl font-black text-gray-900 mb-4" x-text="pageData[currentLang]?.steps_title || 'Comment ça marche'"></h2>
             </div>
             
             <div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-                <template x-for="(step, index) in pageData[currentLang]?.steps || []" :key="index">
+                <template x-for="(step, index) in (pageData[currentLang]?.steps || [])" :key="index">
                     <div class="relative">
                         <div class="text-center">
                             <div class="w-20 h-20 bg-gradient-to-br from-blue-600 to-blue-800 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-                                <span class="text-3xl font-black text-white" x-text="step.number">1</span>
+                                <span class="text-3xl font-black text-white" x-text="step.number"></span>
                             </div>
-                            <h3 class="text-xl font-bold mb-3 text-gray-900" x-text="step.title">Step Title</h3>
-                            <p class="text-gray-600 leading-relaxed" x-text="step.description">Step description</p>
+                            <h3 class="text-xl font-bold mb-3 text-gray-900" x-text="step.title"></h3>
+                            <p class="text-gray-600 leading-relaxed" x-text="step.description"></p>
                         </div>
                         <!-- Arrow for desktop -->
                         <div class="hidden md:block absolute top-10 right-0 transform translate-x-1/2" x-show="index < 2">
@@ -166,12 +255,12 @@
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <div class="max-w-4xl mx-auto bg-white rounded-2xl p-8 lg:p-12 shadow-lg border border-gray-200">
                 <h2 class="text-3xl lg:text-4xl font-black mb-8 text-gray-900 text-center">
-                    <template x-if="currentLang === 'fr'">À Propos de {{ $product->name }}</template>
-                    <template x-if="currentLang === 'en'">About {{ $product->name }}</template>
-                    <template x-if="currentLang === 'ar'">حول {{ $product->name }}</template>
+                    <span x-show="currentLang === 'fr'">À Propos de {{ $product->name }}</span>
+                    <span x-show="currentLang === 'en'">About {{ $product->name }}</span>
+                    <span x-show="currentLang === 'ar'">حول {{ $product->name }}</span>
                 </h2>
                 <div class="prose prose-lg max-w-none text-gray-700 leading-relaxed" 
-                     x-html="(pageData[currentLang]?.full_description || '{{ $product->description }}').replace(/\n/g, '<br>')">
+                     x-html="(pageData[currentLang]?.full_description || '').replace(/\n/g, '\u003cbr\u003e')">
                     {!! nl2br(e($product->landing_page_content ?? $product->description)) !!}
                 </div>
             </div>
@@ -182,26 +271,22 @@
     <section class="py-16 lg:py-20 bg-white" x-cloak>
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12">
-                <h2 class="text-3xl lg:text-4xl font-black text-gray-900 mb-4" x-text="pageData[currentLang]?.testimonials_title || 'Témoignages'">
-                    Témoignages
-                </h2>
+                <h2 class="text-3xl lg:text-4xl font-black text-gray-900 mb-4" x-text="pageData[currentLang]?.testimonials_title || 'Témoignages'"></h2>
             </div>
             
             <div class="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-                <template x-for="(testimonial, index) in pageData[currentLang]?.testimonials || []" :key="index">
+                <template x-for="(testimonial, index) in (pageData[currentLang]?.testimonials || [])" :key="index">
                     <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 shadow-lg border-2 border-green-200">
                         <!-- Stars -->
                         <div class="flex gap-1 mb-4">
-                            <template x-for="i in testimonial.rating || 5" :key="i">
+                            <template x-for="i in (testimonial.rating || 5)" :key="i">
                                 <svg class="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20">
                                     <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
                                 </svg>
                             </template>
                         </div>
-                        <p class="text-gray-700 mb-4 italic leading-relaxed" x-text="'\"' + testimonial.text + '\"'">
-                            "Testimonial text"
-                        </p>
-                        <p class="text-gray-900 font-bold" x-text="testimonial.name">Customer Name</p>
+                        <p class="text-gray-700 mb-4 italic leading-relaxed" x-text="testimonial.text || ''"></p>
+                        <p class="text-gray-900 font-bold" x-text="testimonial.name || ''"></p>
                     </div>
                 </template>
             </div>
@@ -212,23 +297,21 @@
     <section class="py-16 lg:py-20 bg-gray-50" x-cloak x-data="{ openFaq: null }">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12">
-                <h2 class="text-3xl lg:text-4xl font-black text-gray-900 mb-4" x-text="pageData[currentLang]?.faqs_title || 'Questions Fréquentes'">
-                    Questions Fréquentes
-                </h2>
+                <h2 class="text-3xl lg:text-4xl font-black text-gray-900 mb-4" x-text="pageData[currentLang]?.faqs_title || 'Questions Fréquentes'"></h2>
             </div>
             
             <div class="max-w-3xl mx-auto space-y-4">
-                <template x-for="(faq, index) in pageData[currentLang]?.faqs || []" :key="index">
+                <template x-for="(faq, index) in (pageData[currentLang]?.faqs || [])" :key="index">
                     <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
                         <button @click="openFaq = openFaq === index ? null : index" 
                                 class="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition">
-                            <span class="font-bold text-gray-900 text-lg" x-text="faq.question">Question?</span>
+                            <span class="font-bold text-gray-900 text-lg" x-text="faq.question"></span>
                             <svg :class="{'rotate-180': openFaq === index}" class="w-6 h-6 text-blue-600 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                             </svg>
                         </button>
                         <div x-show="openFaq === index" x-collapse class="px-6 pb-4">
-                            <p class="text-gray-600 leading-relaxed" x-text="faq.answer">Answer</p>
+                            <p class="text-gray-600 leading-relaxed" x-text="faq.answer"></p>
                         </div>
                     </div>
                 </template>
@@ -237,7 +320,7 @@
     </section>
 
     <!-- Product Gallery -->
-    @if($product->images && count($product->images) > 1)
+    @if(($product->images && count($product->images) > 1) || ($product->ai_generated_images && count($product->ai_generated_images) > 0))
     <section class="py-16 lg:py-20 bg-white">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <h2 class="text-3xl lg:text-4xl font-black text-center mb-12 text-gray-900">
@@ -245,18 +328,48 @@
                 <span x-show="currentLang === 'en'">Photo Gallery</span>
                 <span x-show="currentLang === 'ar'">معرض الصور</span>
             </h2>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-                @foreach($product->images as $image)
-                <div class="relative group overflow-hidden rounded-xl shadow-lg transform hover:scale-105 transition-all duration-300">
-                    <img src="{{ Storage::url($image) }}" 
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                @foreach($product->all_images as $image)
+                <div class="relative group overflow-hidden rounded-xl shadow-lg transform hover:scale-105 transition-all duration-300 cursor-pointer"
+                     onclick="openImageModal('{{ $image }}')">
+                    <img src="{{ $image }}" 
                          alt="{{ $product->name }}" 
                          class="w-full h-64 object-cover">
-                    <div class="absolute inset-0 bg-gradient-to-t from-blue-900/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div class="absolute inset-0 bg-gradient-to-t from-blue-900/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                        <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/>
+                        </svg>
+                    </div>
                 </div>
                 @endforeach
             </div>
         </div>
     </section>
+
+    <script>
+        function openImageModal(imageSrc) {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4';
+            modal.onclick = (e) => {
+                if (e.target === modal || e.target.tagName === 'BUTTON') {
+                    modal.remove();
+                }
+            };
+            
+            modal.innerHTML = `
+                <div class="relative max-w-7xl w-full">
+                    <button class="absolute top-4 right-4 text-white hover:text-gray-300 transition z-10">
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                    <img src="${imageSrc}" alt="Product image" class="w-full h-auto max-h-[90vh] object-contain rounded-lg shadow-2xl" />
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+    </script>
     @endif
 
     <!-- Contact Form Section -->
