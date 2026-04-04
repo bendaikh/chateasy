@@ -48,11 +48,14 @@ class GenerateProductImagesJob implements ShouldQueue
             $apiKey = Crypt::decryptString($aiSetting->openai_api_key_encrypted);
             $generatedImages = [];
 
-            $productDescription = $this->buildProductDescription();
+            // First, analyze the uploaded product image with GPT-4 Vision to get accurate description
+            $detailedDescription = $this->analyzeProductImage($apiKey);
+            
+            Log::info("Product image analysis for product {$this->product->id}: " . $detailedDescription);
 
             for ($i = 0; $i < $this->numberOfImages; $i++) {
                 try {
-                    $prompt = $this->generateImagePrompt($i);
+                    $prompt = $this->generateImagePrompt($i, $detailedDescription);
                     
                     $response = Http::withToken($apiKey)
                         ->timeout(120)
@@ -109,36 +112,111 @@ class GenerateProductImagesJob implements ShouldQueue
         }
     }
 
+    private function analyzeProductImage(string $apiKey): string
+    {
+        // Get the first uploaded product image
+        $images = $this->product->images ?? [];
+        
+        if (empty($images)) {
+            // No image uploaded, use product name and description
+            return $this->buildProductDescription();
+        }
+
+        $imagePath = $images[0];
+        
+        // Get the full URL or base64 of the image
+        try {
+            $imageContent = Storage::disk('public')->get($imagePath);
+            $base64Image = base64_encode($imageContent);
+            $mimeType = 'image/jpeg';
+            
+            // Detect mime type
+            $extension = pathinfo($imagePath, PATHINFO_EXTENSION);
+            if (in_array(strtolower($extension), ['png'])) {
+                $mimeType = 'image/png';
+            } elseif (in_array(strtolower($extension), ['gif'])) {
+                $mimeType = 'image/gif';
+            } elseif (in_array(strtolower($extension), ['webp'])) {
+                $mimeType = 'image/webp';
+            }
+
+            // Use GPT-4 Vision to analyze the image
+            $response = Http::withToken($apiKey)
+                ->timeout(60)
+                ->post('https://api.openai.com/v1/chat/completions', [
+                    'model' => 'gpt-4o',
+                    'messages' => [
+                        [
+                            'role' => 'user',
+                            'content' => [
+                                [
+                                    'type' => 'text',
+                                    'text' => "Analyze this product image in detail. Describe the EXACT product shown including:
+1. What type of product is it (be very specific - exact item type, not generic)
+2. The exact colors (primary and secondary colors)
+3. The materials/textures visible
+4. The shape and design elements
+5. Any text, logos, or patterns visible
+6. The style (modern, vintage, minimal, etc.)
+7. Size indication if visible
+
+Product name for context: {$this->product->name}
+
+Provide a detailed, specific description that could be used to recreate this EXACT product in an image generation AI. Focus on visual accuracy. Be concise but complete."
+                                ],
+                                [
+                                    'type' => 'image_url',
+                                    'image_url' => [
+                                        'url' => "data:{$mimeType};base64,{$base64Image}",
+                                        'detail' => 'high'
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ],
+                    'max_tokens' => 500
+                ]);
+
+            if ($response->successful()) {
+                $analysis = $response->json()['choices'][0]['message']['content'] ?? '';
+                return trim($analysis);
+            }
+
+        } catch (\Exception $e) {
+            Log::warning("Could not analyze product image: " . $e->getMessage());
+        }
+
+        // Fallback to basic description
+        return $this->buildProductDescription();
+    }
+
     private function buildProductDescription(): string
     {
         return trim($this->product->name . '. ' . ($this->product->description ?? ''));
     }
 
-    private function generateImagePrompt(int $index): string
+    private function generateImagePrompt(int $index, string $detailedDescription): string
     {
         $productName = $this->product->name;
-        $description = $this->product->description ?? '';
         
+        // Create prompts that use the detailed description from image analysis
         $angles = [
-            "Professional product photography of {$productName}, front view, centered on white background, studio lighting, high quality, realistic, e-commerce style",
-            "Professional product photography of {$productName}, side angle view, white background, studio lighting, detailed, commercial photography style",
-            "Professional lifestyle shot of {$productName} in use, natural setting, professional photography, high quality, realistic lighting",
-            "Professional product photography of {$productName}, close-up detail shot, white background, studio lighting, sharp focus, high resolution",
-            "Professional flat lay composition featuring {$productName}, overhead view, styled product photography, white background, aesthetic arrangement"
+            "Professional e-commerce product photography. Create an image of EXACTLY this product: {$detailedDescription}. Front view, centered on pure white background, professional studio lighting, high quality, sharp details, commercial photography style.",
+            
+            "Professional e-commerce product photography. Create an image of EXACTLY this product: {$detailedDescription}. 45-degree angle view, pure white background, soft studio lighting, detailed textures visible, commercial quality.",
+            
+            "Lifestyle product photography. Show EXACTLY this product: {$detailedDescription}. In an elegant, minimal setting appropriate for the product type. Natural lighting, professional composition, high-end commercial photography style.",
+            
+            "Professional product photography detail shot. Create EXACTLY this product: {$detailedDescription}. Close-up showing textures and details, pure white background, sharp focus, studio lighting, high resolution commercial photography.",
+            
+            "Professional flat lay product photography. Create EXACTLY this product: {$detailedDescription}. Overhead view, aesthetically arranged on white background, soft shadows, commercial e-commerce style photography."
         ];
 
         if ($index < count($angles)) {
-            $prompt = $angles[$index];
-        } else {
-            $prompt = "Professional product photography of {$productName}, elegant composition, white background, studio lighting, e-commerce style";
+            return $angles[$index];
         }
-
-        if (!empty($description)) {
-            $shortDesc = substr($description, 0, 100);
-            $prompt .= ". Product details: {$shortDesc}";
-        }
-
-        return $prompt;
+        
+        return "Professional product photography. Create EXACTLY this product: {$detailedDescription}. White background, studio lighting, e-commerce style, high quality commercial photography.";
     }
 
     public function failed(\Throwable $exception): void

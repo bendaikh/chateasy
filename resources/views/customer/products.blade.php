@@ -182,12 +182,12 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                             </svg>
                                         </a>
-                                        <button class="text-yellow-400 hover:text-yellow-300 transition" title="Edit Product">
+                                        <a href="{{ route('app.products.edit', $product->id) }}" class="text-yellow-400 hover:text-yellow-300 transition" title="Edit Product">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                             </svg>
-                                        </button>
-                                        <button class="text-red-400 hover:text-red-300 transition" title="Delete Product">
+                                        </a>
+                                        <button onclick="deleteProduct({{ $product->id }}, '{{ addslashes($product->name) }}')" class="text-red-400 hover:text-red-300 transition" title="Delete Product">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                             </svg>
@@ -237,7 +237,62 @@
         @endif
     </div>
 
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="fixed inset-0 bg-black/80 z-50 hidden items-center justify-center p-4">
+        <div class="bg-[#0f1c2e] border border-white/10 rounded-xl p-6 max-w-md w-full">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center">
+                    <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold text-white">Delete Product</h3>
+                    <p class="text-sm text-gray-400">This action cannot be undone</p>
+                </div>
+            </div>
+            <p class="text-gray-300 mb-6">Are you sure you want to delete <span id="deleteProductName" class="font-semibold text-white"></span>? All associated images and data will be permanently removed.</p>
+            <div class="flex justify-end gap-3">
+                <button onclick="closeDeleteModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition">
+                    Cancel
+                </button>
+                <form id="deleteForm" method="POST" class="inline">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition">
+                        Delete Product
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script>
+        function deleteProduct(productId, productName) {
+            const modal = document.getElementById('deleteModal');
+            const form = document.getElementById('deleteForm');
+            const nameSpan = document.getElementById('deleteProductName');
+            
+            form.action = `/app/products/${productId}`;
+            nameSpan.textContent = productName;
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+        
+        function closeDeleteModal() {
+            const modal = document.getElementById('deleteModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+        
+        // Close modal when clicking outside
+        document.getElementById('deleteModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeDeleteModal();
+            }
+        });
+
         function generateLandingPage(productId) {
             const button = event.target.closest('button');
             const originalContent = button.innerHTML;

@@ -315,6 +315,83 @@ class CustomerDashboardController extends Controller
         return redirect()->route('app.products')->with('success', 'Product created successfully!');
     }
     
+    public function productsEdit($id)
+    {
+        $product = \App\Models\Product::where('user_id', auth()->id())->findOrFail($id);
+        $categories = \App\Models\Category::where('is_active', true)->orderBy('order')->orderBy('name')->get();
+        
+        return view('customer.products-edit', compact('product', 'categories'));
+    }
+    
+    public function productsUpdate(Request $request, $id)
+    {
+        $product = \App\Models\Product::where('user_id', auth()->id())->findOrFail($id);
+        
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'price' => 'required|numeric|min:0',
+            'compare_at_price' => 'nullable|numeric|min:0',
+            'category_id' => 'nullable|exists:categories,id',
+            'images' => 'nullable|array',
+            'images.*' => 'image|max:2048',
+            'stock' => 'nullable|integer|min:0',
+            'sku' => 'nullable|string|max:255',
+        ]);
+        
+        $validated['is_active'] = $request->has('is_active');
+        $validated['is_featured'] = $request->has('is_featured');
+        $validated['stock'] = $validated['stock'] ?? 0;
+        
+        if ($request->hasFile('images')) {
+            $imagePaths = $product->images ?? [];
+            foreach ($request->file('images') as $image) {
+                $imagePaths[] = $image->store('products', 'public');
+            }
+            $validated['images'] = $imagePaths;
+        }
+        
+        // Handle image deletion
+        if ($request->has('delete_images')) {
+            $currentImages = $product->images ?? [];
+            $deleteImages = $request->input('delete_images', []);
+            $validated['images'] = array_values(array_diff($currentImages, $deleteImages));
+            
+            // Delete files from storage
+            foreach ($deleteImages as $image) {
+                \Storage::disk('public')->delete($image);
+            }
+        }
+        
+        $product->update($validated);
+        
+        return redirect()->route('app.products')->with('success', 'Product updated successfully!');
+    }
+    
+    public function productsDestroy($id)
+    {
+        $product = \App\Models\Product::where('user_id', auth()->id())->findOrFail($id);
+        
+        // Delete product images from storage
+        if ($product->images) {
+            foreach ($product->images as $image) {
+                \Storage::disk('public')->delete($image);
+            }
+        }
+        
+        // Delete AI generated images
+        if ($product->ai_generated_images) {
+            foreach ($product->ai_generated_images as $image) {
+                $path = str_replace('/storage/', '', $image);
+                \Storage::disk('public')->delete($path);
+            }
+        }
+        
+        $product->delete();
+        
+        return redirect()->route('app.products')->with('success', 'Product deleted successfully!');
+    }
+
     public function generateLandingPage($productId)
     {
         $product = \App\Models\Product::where('user_id', auth()->id())->findOrFail($productId);

@@ -60,6 +60,9 @@ Route::middleware(['auth'])->prefix('app')->name('app.')->group(function () {
     Route::get('/products', [CustomerDashboardController::class, 'products'])->name('products');
     Route::get('/products/create', [CustomerDashboardController::class, 'productsCreate'])->name('products.create');
     Route::post('/products', [CustomerDashboardController::class, 'productsStore'])->name('products.store');
+    Route::get('/products/{id}/edit', [CustomerDashboardController::class, 'productsEdit'])->name('products.edit');
+    Route::put('/products/{id}', [CustomerDashboardController::class, 'productsUpdate'])->name('products.update');
+    Route::delete('/products/{id}', [CustomerDashboardController::class, 'productsDestroy'])->name('products.destroy');
     Route::post('/products/{id}/generate-landing-page', [CustomerDashboardController::class, 'generateLandingPage'])->name('products.generate-landing-page');
     Route::post('/products/{id}/generate-images', [CustomerDashboardController::class, 'generateProductImages'])->name('products.generate-images');
     Route::get('/products/{id}/image-progress', [CustomerDashboardController::class, 'checkImageGenerationProgress'])->name('products.image-progress');
